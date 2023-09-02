@@ -19,7 +19,7 @@ import Button from "../components/Button";
 import AuthContext from "../context/AuthContext";
 
 export default function UserDashboard({ navigation }) {
-  const { signOut } = useContext(AuthContext);
+  const { user, signOut } = useContext(AuthContext);
   const drawer = useRef(null);
 
   const navOptions = [
@@ -65,9 +65,20 @@ export default function UserDashboard({ navigation }) {
         <Text style={styles.label}>Dashboard</Text>
         <Button
           text="Open drawer"
+          buttonStyle={styles.button}
           onPress={() => drawer.current.openDrawer()}
         />
-        <Button text="Logout" onPress={signOut} />
+        <Button text="Logout" buttonStyle={styles.button} onPress={signOut} />
+        <Text style={styles.label}>Username:</Text>
+        <Text>{user.username}</Text>
+        <Text style={styles.label}>User ID:</Text>
+        <Text>{user.id}</Text>
+        <Text style={styles.label}>Email:</Text>
+        <Text>{user.email}</Text>
+        <Text style={styles.label}>Name:</Text>
+        <Text>{user.name}</Text>
+        <Text style={styles.label}>Token:</Text>
+        <Text>{user.token}</Text>
       </View>
     </DrawerLayoutAndroid>
   );
@@ -99,5 +110,8 @@ const styles = StyleSheet.create({
   listItemText: {
     fontSize: 24,
     fontWeight: "bold",
+  },
+  button: {
+    marginBottom: 5,
   },
 });

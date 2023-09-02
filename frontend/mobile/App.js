@@ -21,6 +21,7 @@ export default function App() {
           return {
             ...prevState,
             userToken: action.token,
+            user: action.user,
             isLoading: false,
           };
         case "SIGN_IN":
@@ -28,12 +29,14 @@ export default function App() {
             ...prevState,
             isSignout: false,
             userToken: action.token,
+            user: action.user,
           };
         case "SIGN_OUT":
           return {
             ...prevState,
             isSignout: true,
             userToken: null,
+            user: null,
           };
       }
     },
@@ -48,9 +51,11 @@ export default function App() {
     // Fetch the token from storage then navigate to our appropriate place
     const bootstrapAsync = async () => {
       let userToken;
+      let user;
 
       try {
         userToken = await SecureStore.getItemAsync("userToken");
+        user = await SecureStore.getItemAsync("user");
       } catch (e) {
         // Restoring token failed
       }
@@ -59,7 +64,11 @@ export default function App() {
 
       // This will switch to the App screen or Auth screen and this loading
       // screen will be unmounted and thrown away.
-      dispatch({ type: "RESTORE_TOKEN", token: userToken });
+      dispatch({
+        type: "RESTORE_TOKEN",
+        token: userToken,
+        user: JSON.parse(user),
+      });
     };
 
     bootstrapAsync();
@@ -67,28 +76,33 @@ export default function App() {
 
   const authContext = useMemo(
     () => ({
+      user: {
+        token: state.userToken,
+        ...state.user,
+      },
       signIn: async (data) => {
-        // In a production app, we need to send some data (usually username, password) to server and get a token
-        // We will also need to handle errors if sign in failed
-        // After getting token, we need to persist the token using `SecureStore`
-        // In the example, we'll use a dummy token
-        const token = await login(data)
+        const result = await login(data)
           .then((res) => {
             const { result, ok } = res;
             ToastAndroid.show(result.message, ToastAndroid.SHORT);
             if (ok) {
-              return result.accessToken;
+              return result;
             }
           })
           .catch((err) => {
             throw new Error(err);
           });
 
-        if (token) {
-          await SecureStore.setItemAsync("userToken", token);
+        if (result.accessToken) {
+          await SecureStore.setItemAsync("userToken", result.accessToken);
+          await SecureStore.setItemAsync("user", JSON.stringify(result.user));
         }
 
-        dispatch({ type: "SIGN_IN", token: token });
+        dispatch({
+          type: "SIGN_IN",
+          token: result.accessToken,
+          user: result.user,
+        });
       },
       signOut: () => dispatch({ type: "SIGN_OUT" }),
       signUp: async (data) => {
@@ -100,7 +114,7 @@ export default function App() {
         dispatch({ type: "SIGN_IN", token: "dummy-auth-token" });
       },
     }),
-    []
+    [state.userToken]
   );
 
   return (
