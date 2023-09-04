@@ -8,6 +8,7 @@ export default function Button(props) {
       borderRadius: 5,
       padding: 5,
       alignItems: "center",
+      justifyContent: "center",
       backgroundColor: "mediumpurple",
       ...props.buttonStyle,
     },

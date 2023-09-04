@@ -1,17 +1,22 @@
+import "react-native-gesture-handler";
 import React, { useMemo, useReducer, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { StyleSheet, ToastAndroid } from "react-native";
+import { StyleSheet, ToastAndroid, TouchableOpacity } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import HomeScreen from "./pages/HomeScreen";
 import Login from "./pages/Login";
 import PasswordResetRequest from "./pages/PasswordResetRequest";
 import UserDashboard from "./pages/UserDashboard";
+import AccountSetup from "./pages/AccountSetup";
 import * as SecureStore from "expo-secure-store";
 import { login } from "./services/UserService";
 import AuthContext from "./context/AuthContext";
+import { MaterialIcons } from "@expo/vector-icons";
+import { createDrawerNavigator } from "@react-navigation/drawer";
 
 const Stack = createNativeStackNavigator();
+const Drawer = createDrawerNavigator();
 
 export default function App() {
   const [state, dispatch] = useReducer(
@@ -93,16 +98,16 @@ export default function App() {
             throw new Error(err);
           });
 
-        if (result.accessToken) {
+        if (result && result.accessToken) {
           await SecureStore.setItemAsync("userToken", result.accessToken);
           await SecureStore.setItemAsync("user", JSON.stringify(result.user));
-        }
 
-        dispatch({
-          type: "SIGN_IN",
-          token: result.accessToken,
-          user: result.user,
-        });
+          dispatch({
+            type: "SIGN_IN",
+            token: result.accessToken,
+            user: result.user,
+          });
+        }
       },
       signOut: () => dispatch({ type: "SIGN_OUT" }),
       signUp: async (data) => {
@@ -117,43 +122,72 @@ export default function App() {
     [state.userToken]
   );
 
+  const screenOptions = ({ navigation }) => ({
+    headerTintColor: "mediumpurple",
+    headerRight: () => {
+      return (
+        <TouchableOpacity
+          onPress={() => navigation.navigate("AccountSetup")}
+          style={styles.accountButton}
+        >
+          <MaterialIcons
+            name={"account-circle"}
+            color={"mediumpurple"}
+            size={35}
+          />
+        </TouchableOpacity>
+      );
+    },
+  });
+
   return (
     <AuthContext.Provider value={authContext}>
       <NavigationContainer>
-        <Stack.Navigator>
-          <>
-            {state.userToken == null ? (
-              <>
-                <Stack.Screen
-                  name="Home"
-                  component={HomeScreen}
-                  options={{ title: "Welcome" }}
-                />
-                <Stack.Screen
-                  name="Login"
-                  component={Login}
-                  options={{
-                    title: "Login",
-                    animationTypeForReplace: state.isSignout ? "pop" : "push",
-                  }}
-                />
-                <Stack.Screen
-                  name="PasswordResetRequest"
-                  component={PasswordResetRequest}
-                  options={{ title: "Forgot Password" }}
-                />
-              </>
-            ) : (
-              <>
-                <Stack.Screen
-                  name="UserDashboard"
-                  component={UserDashboard}
-                  options={{ title: "Dashboard" }}
-                />
-              </>
-            )}
-          </>
-        </Stack.Navigator>
+        {state.userToken == null ? (
+          <Stack.Navigator screenOptions={{ headerTintColor: "mediumpurple" }}>
+            <Stack.Screen
+              name="Home"
+              component={HomeScreen}
+              options={{ title: "Welcome" }}
+            />
+            <Stack.Screen
+              name="Login"
+              component={Login}
+              options={{
+                title: "Login",
+                animationTypeForReplace: state.isSignout ? "pop" : "push",
+              }}
+            />
+            <Stack.Screen
+              name="PasswordResetRequest"
+              component={PasswordResetRequest}
+              options={{ title: "Forgot Password" }}
+            />
+          </Stack.Navigator>
+        ) : (
+          <Drawer.Navigator screenOptions={screenOptions}>
+            <Drawer.Screen
+              name="UserDashboard"
+              component={UserDashboard}
+              options={{
+                title: "Dashboard",
+              }}
+            />
+            <Drawer.Group
+              screenOptions={{
+                drawerItemStyle: { display: "none" },
+              }}
+            >
+              <Drawer.Screen
+                name="AccountSetup"
+                component={AccountSetup}
+                options={{
+                  title: "Account",
+                }}
+              />
+            </Drawer.Group>
+          </Drawer.Navigator>
+        )}
       </NavigationContainer>
     </AuthContext.Provider>
   );
@@ -165,5 +199,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     alignItems: "center",
     justifyContent: "center",
+  },
+  accountButton: {
+    paddingRight: 10,
   },
 });
